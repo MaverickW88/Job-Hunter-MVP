@@ -10,16 +10,28 @@ const SCHEMA = {
   properties: {
     coverLetter: {
       type: "string",
-      description: "Carta de presentación completa, en español, lista para copiar/pegar",
+      description: "Carta de presentación completa, en el idioma de la vacante (ver reglas en el prompt del sistema), lista para copiar/pegar",
     },
   },
   required: ["coverLetter"],
 };
 
+// Nota de idioma (ajustado 2 sep 2026 a peticion de Humberto): antes esto
+// forzaba "en espanol de Mexico" sin importar el idioma real de la vacante.
+// No guardamos el texto completo de la descripcion original (solo
+// title/company/whyFit), asi que usamos el titulo del puesto como senal del
+// idioma en que esta publicada la vacante -- es la senal mas confiable que
+// tenemos hoy. Si el titulo es ambiguo o mixto, cae a espanol por default.
 const SYSTEM = `Eres un coach de carrera. Escribes cartas de presentación breves
 (máximo 300 palabras), concretas y sin relleno genérico — conectan 2-3 logros
-reales del CV con lo que pide la vacante. Tono profesional pero humano, en
-español de México. Nunca inventes logros que no estén en el CV.`;
+reales del CV con lo que pide la vacante. Tono profesional pero humano.
+Nunca inventes logros que no estén en el CV.
+
+IDIOMA: detecta el idioma de la vacante a partir del título del puesto que te
+den (ej. "Lead Technical Program Manager" → inglés; "Gerente de Operaciones"
+→ español) y escribe la carta completa en ese idioma. Si el título es
+ambiguo, bilingüe, o no da una señal clara, escribe la carta en inglés por default. El idioma del CV del candidato es irrelevante para esta
+decisión — solo importa el idioma de la vacante.`;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return sendError(res, 405, "Usa POST");
