@@ -68,12 +68,20 @@ export default async function handler(req, res) {
     console.log(`search-vacancies DEBUG [${attemptLabel}] sourcesFound:`, sources?.length || 0);
     console.log(`search-vacancies DEBUG [${attemptLabel}] texto crudo (primeros 2000 chars):`, (text || "").slice(0, 2000));
 
+    // FIX (2 sep 2026): antes, si el modelo respondía en prosa en vez de JSON
+    // (ej. "Lamento no poder completar la solicitud..." — pasa cuando agota
+    // sus búsquedas sin encontrar URLs verificables), esto lanzaba un error
+    // que saltaba DIRECTO a un 502 en el usuario, sin pasar por el retry
+    // automático de abajo (que solo revisaba vacancies.length === 0). Ahora
+    // se trata igual que "0 vacantes encontradas": entra al mismo flujo de
+    // retry, y si los 2 intentos fallan, el usuario ve el mensaje amigable
+    // de "no encontramos vacantes" en vez de un error técnico.
     let vacancies;
     try {
       vacancies = extractJSON(text);
     } catch (parseErr) {
-      console.error(`search-vacancies [${attemptLabel}]: no se pudo parsear JSON. Texto crudo:`, text);
-      throw new Error("El modelo no devolvió una lista de vacantes interpretable.");
+      console.error(`search-vacancies [${attemptLabel}]: no se pudo parsear JSON (el modelo probablemente respondió en prosa). Texto crudo:`, text);
+      vacancies = [];
     }
 
     if (!Array.isArray(vacancies)) {
