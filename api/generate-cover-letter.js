@@ -10,41 +10,56 @@ const SCHEMA = {
   properties: {
     coverLetter: {
       type: "string",
-      description: "Carta de presentación completa, en el idioma de la vacante (ver reglas en el prompt del sistema), lista para copiar/pegar",
+      description: "Carta de presentación completa, en el idioma que se le indique en el prompt, lista para copiar/pegar",
     },
   },
   required: ["coverLetter"],
 };
 
-// Nota de idioma (ajustado 2 sep 2026 a petición de Humberto, fallback a
-// inglés confirmado ese mismo día): antes esto forzaba "en español de
-// México" sin importar el idioma real de la vacante. No guardamos el texto
-// completo de la descripción original (solo title/company/whyFit), así que
-// usamos el título del puesto como señal del idioma — es la más confiable
-// que tenemos hoy. Si el título es ambiguo, cae a inglés por default.
+// Historial de idioma (2 sep 2026): primero forzaba español fijo. Luego se
+// le pidió al MODELO que detectara el idioma por el título y lo escribiera
+// en ese idioma — falló 2/2 veces probando con títulos en inglés claros
+// ("Design Engineer", "Design and Release Engineer Wiring/Systems") incluso
+// después de instruirle explícitamente ignorar el idioma español del CV y
+// del whyFit. Conclusión: pedirle al modelo que "detecte e ignore" es una
+// instrucción blanda que no sigue de forma confiable.
 //
-// BUG encontrado el mismo día (probando con la vacante "Design Engineer" de
-// Valeo vía OCC Mundial): el prompt de abajo también manda vacancy.whyFit,
-// que search-vacancies.js SIEMPRE genera en español sin importar el idioma
-// real de la vacante — el modelo veía título en inglés + un párrafo en
-// español y se quedaba con la señal más fuerte (el párrafo), ignorando la
-// instrucción de basarse solo en el título. Se agregó la aclaración
-// explícita de abajo para forzar que ignore el idioma del resto del prompt.
+// FIX (este cambio): el CÓDIGO decide el idioma con detectSpanishTitle() de
+// abajo — una heurística simple por palabras típicas de puestos en español
+// — y se lo ORDENA directo al modelo en el prompt como un hecho, no como
+// algo que tenga que inferir. Esto es mucho más confiable porque ya no hay
+// nada que "detectar" del lado del modelo, solo obedecer.
+const SPANISH_TITLE_WORDS = [
+  "gerente", "gerenta", "ingeniero", "ingeniera", "analista", "director",
+  "directora", "coordinador", "coordinadora", "especialista", "jefe", "jefa",
+  "supervisor", "supervisora", "vendedor", "vendedora", "asistente",
+  "encargado", "encargada", "lider", "líder", "tecnico", "técnico",
+  "contador", "contadora", "abogado", "abogada", "responsable", "auxiliar",
+  "practicante", "becario", "becaria", "ejecutivo", "ejecutiva", "consultor",
+  "consultora", "representante", "operador", "operadora",
+];
+
+function detectSpanishTitle(title) {
+  const normalized = (title || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, ""); // quita acentos para comparar parejo
+  return SPANISH_TITLE_WORDS.some((word) => {
+    const bare = word.normalize("NFD").replace(/[̀-ͯ]/g, "");
+    return new RegExp(`\\b${bare}\\b`).test(normalized);
+  });
+}
+
 const SYSTEM = `Eres un coach de carrera. Escribes cartas de presentación breves
 (máximo 300 palabras), concretas y sin relleno genérico — conectan 2-3 logros
 reales del CV con lo que pide la vacante. Tono profesional pero humano.
 Nunca inventes logros que no estén en el CV.
 
-IDIOMA: detecta el idioma de la vacante a partir ÚNICAMENTE del título del
-puesto que te den (ej. "Lead Technical Program Manager" → inglés; "Gerente
-de Operaciones" → español) y escribe la carta completa en ese idioma. Si el
-título es ambiguo, bilingüe, o no da una señal clara, escribe la carta en
-inglés por default (preferencia de Humberto: la mayoría de sus vacantes
-objetivo son remoto/global). IMPORTANTE: el resto de este prompt (el CV del
-candidato y la frase de "por qué encaja") casi siempre van a estar en
-español sin importar el idioma real de la vacante — IGNORA por completo el
-idioma en que están escritos esos textos para tu decisión de idioma. Tu
-única señal es el título de la vacante.`;
+IDIOMA: el prompt del usuario te va a indicar explícitamente en qué idioma
+escribir la carta (línea "IDIOMA DE LA CARTA: ..."). Obedece esa instrucción
+al pie de la letra, sin importar en qué idioma estén escritos el CV o la
+descripción de la vacante — esos textos son solo contexto, no una señal de
+idioma.`;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return sendError(res, 405, "Usa POST");
@@ -61,7 +76,24 @@ export default async function handler(req, res) {
   if (!cvText) return sendError(res, 400, "Falta cvText");
   if (!vacancy.title) return sendError(res, 400, "Falta vacancy.title");
 
-  const prompt = `CV:\n\n${cvText}\n\nVacante:\nPuesto: ${vacancy.title}\nEmpresa: ${vacancy.company || "N/D"}\n${vacancy.whyFit ? `Por qué encaja: ${vacancy.whyFit}` : ""}\n\nEscribe la carta de presentación.`;
+  // Decisión de idioma tomada por código, no por el modelo (ver nota arriba).
+  // Default a inglés si el título no matchea palabras típicas de español
+  // (preferencia de Humberto: la mayoría de sus vacantes objetivo son
+  // remoto/global).
+  const letterLanguage = detectSpanishTitle(vacancy.title) ? "español de México" : "inglés";
+
+  const prompt = `IDIOMA DE LA CARTA: ${letterLanguage}. Escribe TODA la carta en ese idioma, sin excepción.
+
+CV:
+
+${cvText}
+
+Vacante:
+Puesto: ${vacancy.title}
+Empresa: ${vacancy.company || "N/D"}
+${vacancy.whyFit ? `Por qué encaja: ${vacancy.whyFit}` : ""}
+
+Escribe la carta de presentación.`;
 
   try {
     const provider = getProvider();
