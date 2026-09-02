@@ -19,10 +19,10 @@ function getConfig() {
   const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5";
   // Las API keys nuevas de Anthropic van "vinculadas a tu identidad", no a un
   // workspace fijo — si tu key es de ese tipo, la API exige que le digas en
-  // que workspace operar via este header, o responde 400 invalid_request_error
-  // ("anthropic-workspace-id is required..."). Encuentralo en Claude Console
-  // -> Settings -> Workspaces -> columna ID. Si tu key SI esta ligada a un solo
-  // workspace (keys legacy), este env var puede quedar vacio sin problema.
+  // qué workspace operar vía este header, o responde 400 invalid_request_error
+  // ("anthropic-workspace-id is required..."). Encuéntralo en Claude Console
+  // → Settings → Workspaces → columna ID. Si tu key SÍ está ligada a un solo
+  // workspace (keys legacy), este env var puede quedar vacío sin problema.
   const workspaceId = process.env.ANTHROPIC_WORKSPACE_ID;
   return { apiKey, model, workspaceId };
 }
@@ -90,7 +90,14 @@ function extractJSON(text) {
 }
 
 async function generateJSON({ system, prompt }) {
-  const jsonSystem = `${system}\n\nResponde ÚNICAMENTE con JSON válido, sin markdown, sin texto adicional.`;
+  // FIX (2 sep 2026): esta línea se agregaba SIEMPRE en español, sin
+  // importar el idioma que pidiera el endpoint que llama (ej.
+  // generate-cover-letter.js) — y quedaba como lo ÚLTIMO que el modelo lee
+  // antes de responder (más peso por recencia). Si LLM_PROVIDER=claude,
+  // esto podía ganarle a la instrucción de idioma del prompt de arriba. El
+  // formato JSON no necesita estar en español para funcionar, así que la
+  // pasamos a inglés neutral — cero señal de idioma extra.
+  const jsonSystem = `${system}\n\nRespond ONLY with valid JSON, no markdown, no extra text.`;
   const { text } = await callClaude({
     system: jsonSystem,
     messages: [{ role: "user", content: prompt }],
