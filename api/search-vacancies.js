@@ -53,7 +53,10 @@ export default async function handler(req, res) {
   const prompt = `CV del candidato:\n\n${cvText}\n\n${roleHint}\n\nBusca hasta 10 vacantes reales y vigentes en México que encajen con este perfil. Devuelve el JSON como se te indicó.`;
 
   try {
-    const provider = getProvider();
+    // Este endpoint puede usar un motor distinto al resto del MVP (ver
+    // SEARCH_PROVIDER en .env.example) — es el unico que depende de
+    // grounding/busqueda web, la cuota mas fragil del free tier de Gemini.
+    const provider = getProvider("SEARCH_PROVIDER");
     const { text, sources } = await provider.generateWithSearch({ system: SYSTEM, prompt });
 
     let vacancies;

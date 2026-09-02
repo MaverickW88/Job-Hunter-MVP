@@ -27,8 +27,22 @@ const PROVIDERS = {
   claude: claudeProvider,
 };
 
-export function getProvider() {
-  const name = (process.env.LLM_PROVIDER || "gemini").trim().toLowerCase();
+export function getProvider(overrideEnvVar) {
+  // overrideEnvVar: nombre opcional de OTRA env var a consultar antes que
+  // LLM_PROVIDER (p. ej. "SEARCH_PROVIDER"). Sirve para que UN endpoint use
+  // un motor distinto al resto sin cambiar el default global — caso real:
+  // el free tier de Gemini tiene cuota de grounding (busqueda) mas fragil
+  // que su cuota de generacion normal, asi que search-vacancies.js puede
+  // apuntar a Claude mientras analyze-cv/adapt-cv/generate-cover-letter
+  // se quedan en Gemini gratis. Si esa env var no esta seteada, cae al
+  // comportamiento normal (LLM_PROVIDER, default "gemini").
+  const name = (
+    (overrideEnvVar && process.env[overrideEnvVar]) ||
+    process.env.LLM_PROVIDER ||
+    "gemini"
+  )
+    .trim()
+    .toLowerCase();
   const provider = PROVIDERS[name];
   if (!provider) {
     const available = Object.keys(PROVIDERS).join(", ");
