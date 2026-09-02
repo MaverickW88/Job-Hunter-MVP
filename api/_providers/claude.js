@@ -17,11 +17,18 @@ function getConfig() {
     );
   }
   const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5";
-  return { apiKey, model };
+  // Las API keys nuevas de Anthropic van "vinculadas a tu identidad", no a un
+  // workspace fijo — si tu key es de ese tipo, la API exige que le digas en
+  // que workspace operar via este header, o responde 400 invalid_request_error
+  // ("anthropic-workspace-id is required..."). Encuentralo en Claude Console
+  // -> Settings -> Workspaces -> columna ID. Si tu key SI esta ligada a un solo
+  // workspace (keys legacy), este env var puede quedar vacio sin problema.
+  const workspaceId = process.env.ANTHROPIC_WORKSPACE_ID;
+  return { apiKey, model, workspaceId };
 }
 
 async function callClaude({ system, messages, tools, maxTokens = 4096, timeoutMs = 45000 }) {
-  const { apiKey, model } = getConfig();
+  const { apiKey, model, workspaceId } = getConfig();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -31,6 +38,7 @@ async function callClaude({ system, messages, tools, maxTokens = 4096, timeoutMs
         "content-type": "application/json",
         "x-api-key": apiKey,
         "anthropic-version": ANTHROPIC_VERSION,
+        ...(workspaceId ? { "anthropic-workspace-id": workspaceId } : {}),
       },
       body: JSON.stringify({
         model,
