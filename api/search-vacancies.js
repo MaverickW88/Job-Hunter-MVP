@@ -52,35 +52,55 @@ export default async function handler(req, res) {
 
   const prompt = `CV del candidato:\n\n${cvText}\n\n${roleHint}\n\nBusca hasta 10 vacantes reales y vigentes en México que encajen con este perfil. Devuelve el JSON como se te indicó.`;
 
-  try {
-    // Este endpoint puede usar un motor distinto al resto del MVP (ver
-    // SEARCH_PROVIDER en .env.example) — es el unico que depende de
-    // grounding/busqueda web, la cuota mas fragil del free tier de Gemini.
-    const provider = getProvider("SEARCH_PROVIDER");
+  // Este endpoint puede usar un motor distinto al resto del MVP (ver
+  // SEARCH_PROVIDER en .env.example) — es el único que depende de
+  // grounding/búsqueda web, la cuota más frágil del free tier de Gemini.
+  const provider = getProvider("SEARCH_PROVIDER");
+
+  // Hace una sola llamada al motor con tool de búsqueda + intenta parsear el
+  // arreglo de vacantes. Aislado en su propia función porque ahora el
+  // handler la llama hasta 2 veces (ver comentario de retry más abajo).
+  async function runSearchAttempt(attemptLabel) {
     const { text, sources } = await provider.generateWithSearch({ system: SYSTEM, prompt });
 
-    // DEBUG TEMPORAL -- quitar una vez que confirmemos por que llegan 0
-    // vacantes. Revisa esto en Vercel -> tu proyecto -> Logs (o "Runtime Logs"
-    // en el deployment especifico) despues de reproducir el caso.
-    console.log("search-vacancies DEBUG sourcesFound:", sources?.length || 0);
-    console.log("search-vacancies DEBUG texto crudo (primeros 2000 chars):", (text || "").slice(0, 2000));
+    // DEBUG TEMPORAL — quitar una vez que confirmemos que el retry basta.
+    // Revisa esto en Vercel → tu proyecto → Logs después de reproducir el caso.
+    console.log(`search-vacancies DEBUG [${attemptLabel}] sourcesFound:`, sources?.length || 0);
+    console.log(`search-vacancies DEBUG [${attemptLabel}] texto crudo (primeros 2000 chars):`, (text || "").slice(0, 2000));
 
     let vacancies;
     try {
       vacancies = extractJSON(text);
     } catch (parseErr) {
-      console.error("search-vacancies: no se pudo parsear JSON. Texto crudo:", text);
-      return sendError(res, 502, "El modelo no devolvió una lista de vacantes interpretable. Intenta de nuevo.");
+      console.error(`search-vacancies [${attemptLabel}]: no se pudo parsear JSON. Texto crudo:`, text);
+      throw new Error("El modelo no devolvió una lista de vacantes interpretable.");
     }
 
     if (!Array.isArray(vacancies)) {
-      console.log("search-vacancies DEBUG: lo parseado NO es un arreglo, se descarta. Valor:", JSON.stringify(vacancies).slice(0, 500));
+      console.log(`search-vacancies DEBUG [${attemptLabel}]: lo parseado NO es un arreglo, se descarta. Valor:`, JSON.stringify(vacancies).slice(0, 500));
       vacancies = [];
     }
     vacancies = dedupeByUrl(vacancies).slice(0, 10);
     vacancies.sort((a, b) => (b.fitPercent || 0) - (a.fitPercent || 0));
+    return { vacancies, sourcesFound: sources?.length || 0 };
+  }
 
-    res.status(200).json({ vacancies, sourcesFound: sources?.length || 0 });
+  try {
+    let result = await runSearchAttempt("intento 1");
+
+    // RETRY AUTOMÁTICO (agregado 2 sep 2026, evidencia: la misma vacante/CV
+    // dio 0 resultados en un intento y encontró 3 reales en el siguiente —
+    // el tool de búsqueda no es determinístico, cada llamada puede explorar
+    // rutas distintas de la web). Si el primer intento vino vacío, reintenta
+    // UNA vez antes de decirle al usuario que no encontramos nada — le cuesta
+    // al usuario 0 clics extra y una llamada más al motor solo en el caso de
+    // fallo, no siempre.
+    if (result.vacancies.length === 0) {
+      console.log("search-vacancies DEBUG: intento 1 vino vacío, reintentando automáticamente...");
+      result = await runSearchAttempt("intento 2 (retry automático)");
+    }
+
+    res.status(200).json(result);
   } catch (e) {
     console.error("search-vacancies error:", e);
     sendError(res, 502, e.message || "Error buscando vacantes");

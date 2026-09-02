@@ -16,22 +16,35 @@ const SCHEMA = {
   required: ["coverLetter"],
 };
 
-// Nota de idioma (ajustado 2 sep 2026 a peticion de Humberto): antes esto
-// forzaba "en espanol de Mexico" sin importar el idioma real de la vacante.
-// No guardamos el texto completo de la descripcion original (solo
-// title/company/whyFit), asi que usamos el titulo del puesto como senal del
-// idioma en que esta publicada la vacante -- es la senal mas confiable que
-// tenemos hoy. Si el titulo es ambiguo o mixto, cae a espanol por default.
+// Nota de idioma (ajustado 2 sep 2026 a petición de Humberto, fallback a
+// inglés confirmado ese mismo día): antes esto forzaba "en español de
+// México" sin importar el idioma real de la vacante. No guardamos el texto
+// completo de la descripción original (solo title/company/whyFit), así que
+// usamos el título del puesto como señal del idioma — es la más confiable
+// que tenemos hoy. Si el título es ambiguo, cae a inglés por default.
+//
+// BUG encontrado el mismo día (probando con la vacante "Design Engineer" de
+// Valeo vía OCC Mundial): el prompt de abajo también manda vacancy.whyFit,
+// que search-vacancies.js SIEMPRE genera en español sin importar el idioma
+// real de la vacante — el modelo veía título en inglés + un párrafo en
+// español y se quedaba con la señal más fuerte (el párrafo), ignorando la
+// instrucción de basarse solo en el título. Se agregó la aclaración
+// explícita de abajo para forzar que ignore el idioma del resto del prompt.
 const SYSTEM = `Eres un coach de carrera. Escribes cartas de presentación breves
 (máximo 300 palabras), concretas y sin relleno genérico — conectan 2-3 logros
 reales del CV con lo que pide la vacante. Tono profesional pero humano.
 Nunca inventes logros que no estén en el CV.
 
-IDIOMA: detecta el idioma de la vacante a partir del título del puesto que te
-den (ej. "Lead Technical Program Manager" → inglés; "Gerente de Operaciones"
-→ español) y escribe la carta completa en ese idioma. Si el título es
-ambiguo, bilingüe, o no da una señal clara, escribe la carta en inglés por default. El idioma del CV del candidato es irrelevante para esta
-decisión — solo importa el idioma de la vacante.`;
+IDIOMA: detecta el idioma de la vacante a partir ÚNICAMENTE del título del
+puesto que te den (ej. "Lead Technical Program Manager" → inglés; "Gerente
+de Operaciones" → español) y escribe la carta completa en ese idioma. Si el
+título es ambiguo, bilingüe, o no da una señal clara, escribe la carta en
+inglés por default (preferencia de Humberto: la mayoría de sus vacantes
+objetivo son remoto/global). IMPORTANTE: el resto de este prompt (el CV del
+candidato y la frase de "por qué encaja") casi siempre van a estar en
+español sin importar el idioma real de la vacante — IGNORA por completo el
+idioma en que están escritos esos textos para tu decisión de idioma. Tu
+única señal es el título de la vacante.`;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return sendError(res, 405, "Usa POST");
