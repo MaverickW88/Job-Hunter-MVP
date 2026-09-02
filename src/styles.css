@@ -1,0 +1,196 @@
+:root {
+  --bg: #f5f3ee;
+  --surface: #ffffff;
+  --ink: #1c2126;
+  --ink-soft: #565f66;
+  --line: #dedad0;
+  --accent: #1f6f78;
+  --accent-ink: #0f4247;
+  --danger: #b3421f;
+  --danger-soft: #f6e6e0;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 20px 96px;
+}
+
+.app-header h1 {
+  font-size: 2rem;
+  margin: 0 0 6px;
+}
+
+.muted {
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+}
+
+.error {
+  color: var(--danger);
+  background: var(--danger-soft);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 22px 24px;
+  margin-top: 20px;
+}
+
+.card h2 {
+  margin-top: 0;
+  font-size: 1.15rem;
+}
+
+textarea {
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  resize: vertical;
+  margin: 10px 0;
+}
+
+button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  display: inline-block;
+  background: transparent;
+  color: var(--accent-ink);
+  border: 1px solid var(--line);
+  padding: 9px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.roles-list, .vacancy-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+}
+
+.roles-list li, .vacancy-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.vacancy-card.active {
+  border-color: var(--accent);
+}
+
+.roles-list-header, .vacancy-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.vacancy-card-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.fit-pill {
+  background: var(--accent);
+  color: white;
+  font-size: 0.78rem;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.fit-bar {
+  position: relative;
+  width: 120px;
+  height: 18px;
+  background: #eee;
+  border-radius: 999px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.fit-bar-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.fit-bar-label {
+  position: relative;
+  z-index: 1;
+  display: block;
+  text-align: center;
+  font-size: 0.72rem;
+  line-height: 18px;
+  color: var(--ink);
+  mix-blend-mode: difference;
+  filter: invert(1) grayscale(1) contrast(2);
+}
+
+.results-block {
+  margin-top: 14px;
+}
+
+.results-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.results-block-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+pre {
+  white-space: pre-wrap;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  margin: 8px 0 0;
+}
+
+.app-footer {
+  margin-top: 40px;
+  text-align: center;
+}

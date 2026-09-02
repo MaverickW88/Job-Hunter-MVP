@@ -1,0 +1,21 @@
+{
+  "name": "job-hunter-mvp",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Job.hunter() — MVP: analiza tu CV, te da fit % contra roles reales, busca vacantes reales en México y te adapta CV + carta de presentación.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "vercel-dev": "vercel dev"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.4.10"
+  }
+}
