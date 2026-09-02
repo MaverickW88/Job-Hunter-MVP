@@ -17,7 +17,11 @@ function getConfig() {
       "Falta GEMINI_API_KEY. Cópiala en .env.local (ver .env.example) o en las Environment Variables de Vercel."
     );
   }
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  // "gemini-3.6-flash" confirmado como reemplazo vigente por el propio
+  // error 404 de la API el 2 sep 2026 (gemini-2.5-flash ya no acepta
+  // usuarios nuevos). Verifica de nuevo en https://ai.google.dev/gemini-api/docs/models
+  // si esto vuelve a fallar con 404 — Gemini renombra modelos seguido.
+  const model = process.env.GEMINI_MODEL || "gemini-3.6-flash";
   return { apiKey, model };
 }
 
