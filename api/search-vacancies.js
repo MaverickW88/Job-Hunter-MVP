@@ -59,6 +59,12 @@ export default async function handler(req, res) {
     const provider = getProvider("SEARCH_PROVIDER");
     const { text, sources } = await provider.generateWithSearch({ system: SYSTEM, prompt });
 
+    // DEBUG TEMPORAL -- quitar una vez que confirmemos por que llegan 0
+    // vacantes. Revisa esto en Vercel -> tu proyecto -> Logs (o "Runtime Logs"
+    // en el deployment especifico) despues de reproducir el caso.
+    console.log("search-vacancies DEBUG sourcesFound:", sources?.length || 0);
+    console.log("search-vacancies DEBUG texto crudo (primeros 2000 chars):", (text || "").slice(0, 2000));
+
     let vacancies;
     try {
       vacancies = extractJSON(text);
@@ -67,7 +73,10 @@ export default async function handler(req, res) {
       return sendError(res, 502, "El modelo no devolvió una lista de vacantes interpretable. Intenta de nuevo.");
     }
 
-    if (!Array.isArray(vacancies)) vacancies = [];
+    if (!Array.isArray(vacancies)) {
+      console.log("search-vacancies DEBUG: lo parseado NO es un arreglo, se descarta. Valor:", JSON.stringify(vacancies).slice(0, 500));
+      vacancies = [];
+    }
     vacancies = dedupeByUrl(vacancies).slice(0, 10);
     vacancies.sort((a, b) => (b.fitPercent || 0) - (a.fitPercent || 0));
 
