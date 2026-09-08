@@ -40,4 +40,11 @@ export function sendError(res, status, message) {
   res.status(status).json({ error: message });
 }
 
+// Plataformas de búsqueda por región. MX_PLATFORMS es la única en uso hoy
+// (search-vacancies.js solo la importa a ella todavía). Las demás quedan
+// listas para cuando decidamos conectar una selección de región/geo — ese
+// día, el único cambio necesario es qué constante importa search-vacancies.js.
 export const MX_PLATFORMS = ["LinkedIn", "OCC Mundial", "Computrabajo", "Glassdoor", "Jobgether"];
+export const ES_PLATFORMS = ["LinkedIn", "InfoJobs", "Indeed", "Tecnoempleo"];
+export const BR_PLATFORMS = ["LinkedIn", "Catho", "Indeed"];
+export const REMOTE_PLATFORMS = ["LinkedIn", "We Work Remotely", "Remote OK", "Wellfound", "Remotive"];

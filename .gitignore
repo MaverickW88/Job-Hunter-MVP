@@ -4,3 +4,6 @@ dist
 .env.local
 .vercel
 *.log
+
+# Bitacora de producto: notas internas + datos personales de testers (correos) — nunca a git
+bitacora.html

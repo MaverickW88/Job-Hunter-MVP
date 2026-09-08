@@ -128,9 +128,21 @@ ${vacancy.whyFit ? `Why it fits: ${vacancy.whyFit}` : ""}
 
 Write the cover letter now. Reminder: the ENTIRE letter must be in English, start to finish.`;
 
+  // DEBUG TEMPORAL (2 sep 2026) — dos fixes seguidos (75b1d80, 31d1bed) no
+  // resolvieron el bug de idioma incluso con títulos que detectSpanishTitle()
+  // clasifica correctamente como inglés. En vez de adivinar un tercer fix a
+  // ciegas, esto deja evidencia concreta en Vercel → Logs para el próximo
+  // intento: qué proveedor corrió de verdad, qué idioma se calculó, y qué
+  // devolvió el modelo tal cual (antes de cualquier otro procesamiento).
+  // Quitar una vez que el diagnóstico esté confirmado.
+  console.log("generate-cover-letter DEBUG: vacancy.title recibido:", JSON.stringify(vacancy.title));
+  console.log("generate-cover-letter DEBUG: isSpanish/letterLanguage calculado:", isSpanish, letterLanguage);
+  console.log("generate-cover-letter DEBUG: LLM_PROVIDER env var (crudo, sin default):", JSON.stringify(process.env.LLM_PROVIDER));
+
   try {
     const provider = getProvider();
     const result = await provider.generateJSON({ system: SYSTEM, prompt, schema: SCHEMA });
+    console.log("generate-cover-letter DEBUG: respuesta cruda del proveedor:", JSON.stringify(result).slice(0, 2000));
     res.status(200).json({ coverLetter: result.coverLetter || "" });
   } catch (e) {
     console.error("generate-cover-letter error:", e);
